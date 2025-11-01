@@ -55,6 +55,10 @@ for (const term of TERMS) {
 
     // Buscamos selectores comunes de resultados y validamos que hay al menos uno.
     const resultSelectors = [
+      '.artifact-title',        // DSpace usa este para títulos de resultados
+      '.artifact-description',  // DSpace descripción
+      'div.row div.col-sm-9',   // Contenedor de resultados en DSpace
+      '.ds-artifact-item',      // Item de artefacto
       '.result',
       '.search-result',
       'article',
@@ -73,10 +77,13 @@ for (const term of TERMS) {
       }
     }
 
-    // Texto alternativo: palabras claves en la página que pueden indicar resultados
+    // Texto alternativo: buscar "Mostrando ítems" que aparece cuando hay resultados
     if (!hasResult) {
-      const bodyText = (await page.locator('body').innerText()).toLowerCase();
-      if (bodyText.includes('resultados') || bodyText.includes('resultado') || bodyText.includes('tesis')) {
+      const bodyText = await page.locator('body').innerText();
+      if (bodyText.includes('Mostrando ítems') || 
+          bodyText.includes('Mostrando items') ||
+          bodyText.toLowerCase().includes('resultados') || 
+          bodyText.toLowerCase().includes('resultado')) {
         hasResult = true;
       }
     }
