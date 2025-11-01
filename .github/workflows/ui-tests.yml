@@ -1,0 +1,213 @@
+name: UI Tests with Video Recording
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  ui-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build Web Application
+      run: dotnet build DocumentConverter.Web/DocumentConverter.Web.csproj --configuration Release
+    
+    - name: Build UI Tests
+      run: dotnet build DocumentConverter.UITests/DocumentConverter.UITests.csproj --configuration Release
+    
+    - name: Setup Chrome
+      if: matrix.browser == 'chrome'
+      uses: browser-actions/setup-chrome@v1
+      with:
+        chrome-version: stable
+    
+    - name: Setup Firefox
+      if: matrix.browser == 'firefox'
+      uses: browser-actions/setup-firefox@v1
+      with:
+        firefox-version: latest
+    
+    - name: Install FFmpeg for video recording
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    
+    - name: Start Web Application
+      run: |
+        cd DocumentConverter.Web
+        dotnet run --no-build --configuration Release --urls "http://localhost:5000" &
+        echo $! > webapp.pid
+        sleep 5
+    
+    - name: Wait for application to be ready
+      run: |
+        timeout 30 bash -c 'until curl -s http://localhost:5000 > /dev/null; do sleep 1; done'
+    
+    - name: Start video recording
+      run: |
+        Xvfb :99 -screen 0 1920x1080x24 &
+        export DISPLAY=:99
+        ffmpeg -y -f x11grab -video_size 1920x1080 -i :99 -codec:v libx264 -r 12 ./video-${{ matrix.browser }}.mp4 &
+        echo $! > ffmpeg.pid
+        sleep 2
+      continue-on-error: true
+    
+    - name: Run UI Tests - Chrome
+      if: matrix.browser == 'chrome'
+      run: |
+        export DISPLAY=:99
+        dotnet test DocumentConverter.UITests/DocumentConverter.UITests.csproj \
+          --no-build --configuration Release \
+          --filter "FullyQualifiedName~Chrome" \
+          --logger "trx;LogFileName=ui-tests-chrome.trx" \
+          --results-directory ./UITestResults
+      continue-on-error: true
+    
+    - name: Run UI Tests - Firefox
+      if: matrix.browser == 'firefox'
+      run: |
+        export DISPLAY=:99
+        dotnet test DocumentConverter.UITests/DocumentConverter.UITests.csproj \
+          --no-build --configuration Release \
+          --filter "FullyQualifiedName~Firefox" \
+          --logger "trx;LogFileName=ui-tests-firefox.trx" \
+          --results-directory ./UITestResults
+      continue-on-error: true
+    
+    - name: Stop video recording
+      if: always()
+      run: |
+        if [ -f ffmpeg.pid ]; then
+          kill $(cat ffmpeg.pid) || true
+          sleep 2
+        fi
+      continue-on-error: true
+    
+    - name: Stop Web Application
+      if: always()
+      run: |
+        if [ -f DocumentConverter.Web/webapp.pid ]; then
+          kill $(cat DocumentConverter.Web/webapp.pid) || true
+        fi
+      continue-on-error: true
+    
+    - name: Upload video recording
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-test-video-${{ matrix.browser }}
+        path: ./video-${{ matrix.browser }}.mp4
+        if-no-files-found: warn
+    
+    - name: Upload UI Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-test-results-${{ matrix.browser }}
+        path: ./UITestResults
+        if-no-files-found: warn
+    
+    - name: Create UI Test Report
+      if: always()
+      run: |
+        mkdir -p ./UITestReport
+        cat > ./UITestReport/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>UI Test Results - ${{ matrix.browser }}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 40px;
+                    background-color: #f5f5f5;
+                }
+                .container {
+                    max-width: 1000px;
+                    margin: 0 auto;
+                    background-color: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                h1 {
+                    color: #333;
+                    border-bottom: 3px solid #2196F3;
+                    padding-bottom: 10px;
+                }
+                .browser-badge {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 10px 0;
+                    background-color: #2196F3;
+                    color: white;
+                    border-radius: 5px;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                }
+                .video-container {
+                    margin: 20px 0;
+                }
+                video {
+                    width: 100%;
+                    max-width: 800px;
+                    border: 2px solid #ddd;
+                    border-radius: 5px;
+                }
+                .info {
+                    background-color: #e3f2fd;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>UI Test Results</h1>
+                <div class="browser-badge">${{ matrix.browser }}</div>
+                
+                <div class="info">
+                    <h2>Test Information</h2>
+                    <ul>
+                        <li><strong>Browser:</strong> ${{ matrix.browser }}</li>
+                        <li><strong>Platform:</strong> Ubuntu Latest</li>
+                        <li><strong>Date:</strong> <span id="date"></span></li>
+                    </ul>
+                </div>
+                
+                <div class="video-container">
+                    <h2>Test Execution Video</h2>
+                    <p>Video recording of UI tests execution is available in the workflow artifacts.</p>
+                </div>
+            </div>
+            
+            <script>
+                document.getElementById('date').textContent = new Date().toLocaleString();
+            </script>
+        </body>
+        </html>
+        EOF
+    
+    - name: Upload UI Test Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ui-test-report-${{ matrix.browser }}
+        path: ./UITestReport

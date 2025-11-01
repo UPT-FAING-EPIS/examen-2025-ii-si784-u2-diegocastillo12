@@ -1,0 +1,191 @@
+name: Unit and BDD Tests with Coverage
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run Unit Tests with Coverage
+      run: |
+        dotnet test DocumentConverter.Tests/DocumentConverter.Tests.csproj \
+          --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./TestResults \
+          --logger "trx;LogFileName=unit-tests.trx"
+    
+    - name: Run BDD Tests
+      run: |
+        dotnet test DocumentConverter.BDD/DocumentConverter.BDD.csproj \
+          --no-build --configuration Release \
+          --logger "trx;LogFileName=bdd-tests.trx" \
+          --results-directory ./TestResults
+    
+    - name: Install ReportGenerator
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool
+    
+    - name: Generate Coverage Report
+      run: |
+        reportgenerator \
+          -reports:./TestResults/**/coverage.cobertura.xml \
+          -targetdir:./CoverageReport \
+          -reporttypes:"Html;HtmlSummary;Badges;Cobertura"
+    
+    - name: Create Test Results Summary
+      run: |
+        mkdir -p ./TestResults/Summary
+        cat > ./TestResults/Summary/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test Results - Document Converter</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 40px;
+                    background-color: #f5f5f5;
+                }
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background-color: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                h1 {
+                    color: #333;
+                    border-bottom: 3px solid #4CAF50;
+                    padding-bottom: 10px;
+                }
+                h2 {
+                    color: #555;
+                    margin-top: 30px;
+                }
+                .badge {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    margin: 10px 5px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                .success {
+                    background-color: #4CAF50;
+                    color: white;
+                }
+                .info {
+                    background-color: #2196F3;
+                    color: white;
+                }
+                .links {
+                    margin-top: 20px;
+                }
+                .links a {
+                    display: inline-block;
+                    padding: 12px 24px;
+                    margin: 10px 5px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    transition: background-color 0.3s;
+                }
+                .links a:hover {
+                    background-color: #45a049;
+                }
+                .timestamp {
+                    color: #666;
+                    font-size: 14px;
+                    margin-top: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Document Converter - Test Results</h1>
+                
+                <div class="badges">
+                    <span class="badge success">✓ All Tests Passed</span>
+                    <span class="badge info">Coverage Report Available</span>
+                </div>
+                
+                <h2>Test Suites</h2>
+                <ul>
+                    <li><strong>Unit Tests:</strong> Comprehensive unit tests with xUnit</li>
+                    <li><strong>BDD Tests:</strong> Behavior-driven tests with SpecFlow</li>
+                    <li><strong>Code Coverage:</strong> Detailed coverage analysis</li>
+                </ul>
+                
+                <h2>Reports</h2>
+                <div class="links">
+                    <a href="../coverage/index.html">📊 View Coverage Report</a>
+                </div>
+                
+                <div class="timestamp">
+                    Generated: <span id="timestamp"></span>
+                </div>
+            </div>
+            
+            <script>
+                document.getElementById('timestamp').textContent = new Date().toLocaleString();
+            </script>
+        </body>
+        </html>
+        EOF
+    
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: ./CoverageReport
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: ./TestResults
+    
+    - name: Publish to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        destination_dir: ./
+        keep_files: false
+        publish_branch: gh-pages
+    
+    - name: Copy Reports to Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        mkdir -p ./gh-pages/coverage
+        mkdir -p ./gh-pages/tests
+        cp -r ./CoverageReport/* ./gh-pages/coverage/
+        cp -r ./TestResults/Summary/* ./gh-pages/tests/
+    
+    - name: Deploy Reports to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./gh-pages
+        enable_jekyll: false

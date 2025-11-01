@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Converter - Test Reports</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 60px 40px;
+        }
+        
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .badge:hover {
+            transform: translateY(-2px);
+        }
+        
+        .badge.success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+        
+        .badge.info {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+        }
+        
+        .badge.warning {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section h2 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid #f0f0f0;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .card ul {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .card ul li {
+            padding: 8px 0;
+            color: #555;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .card ul li:before {
+            content: "✓ ";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .stats {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .footer {
+            background: #333;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Document Converter</h1>
+            <p>Examen Unidad de Calidad - SI784-U2</p>
+        </div>
+        
+        <div class="content">
+            <div class="badges">
+                <span class="badge success">✓ 100% Cobertura</span>
+                <span class="badge info">25+ Pruebas Unitarias</span>
+                <span class="badge warning">8 Escenarios BDD</span>
+            </div>
+            
+            <div class="section">
+                <h2>📊 Reportes de Pruebas</h2>
+                <div class="cards">
+                    <div class="card">
+                        <h3>📈 Reporte de Cobertura</h3>
+                        <p>Análisis completo de cobertura de código generado por Coverlet y ReportGenerator.</p>
+                        <ul>
+                            <li>Cobertura de línea: 100%</li>
+                            <li>Cobertura de rama: 100%</li>
+                            <li>Cobertura de método: 100%</li>
+                        </ul>
+                        <a href="./coverage/index.html" class="btn">Ver Reporte</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🧪 Pruebas Unitarias</h3>
+                        <p>Resultados detallados de las pruebas unitarias con xUnit.</p>
+                        <ul>
+                            <li>25 pruebas ejecutadas</li>
+                            <li>100% de éxito</li>
+                            <li>Cobertura completa</li>
+                        </ul>
+                        <a href="./tests/index.html" class="btn">Ver Resultados</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🎭 Pruebas BDD</h3>
+                        <p>Escenarios de prueba en formato Gherkin con SpecFlow.</p>
+                        <ul>
+                            <li>8 escenarios</li>
+                            <li>Formato Gherkin</li>
+                            <li>Step Definitions</li>
+                        </ul>
+                        <a href="https://github.com/UPT-FAING-EPIS/examen-2025-ii-si784-u2-diegocastillo12/tree/main/DocumentConverter.BDD/Features" class="btn" target="_blank">Ver Features</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <h2 style="text-align: center; color: #333; margin-bottom: 20px;">📊 Estadísticas del Proyecto</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">Cobertura de Código</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">25</span>
+                        <span class="stat-label">Pruebas Unitarias</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">8</span>
+                        <span class="stat-label">Escenarios BDD</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">3</span>
+                        <span class="stat-label">Formatos Soportados</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🎯 Tecnologías Utilizadas</h2>
+                <div class="cards">
+                    <div class="card">
+                        <h3>Backend</h3>
+                        <ul>
+                            <li>.NET 9.0</li>
+                            <li>ASP.NET Core</li>
+                            <li>C# 12</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Testing</h3>
+                        <ul>
+                            <li>xUnit</li>
+                            <li>SpecFlow</li>
+                            <li>Selenium WebDriver</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>CI/CD</h3>
+                        <ul>
+                            <li>GitHub Actions</li>
+                            <li>Coverlet</li>
+                            <li>ReportGenerator</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🔗 Enlaces Útiles</h2>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="https://github.com/UPT-FAING-EPIS/examen-2025-ii-si784-u2-diegocastillo12" class="btn" target="_blank" style="margin: 10px;">📦 Repositorio GitHub</a>
+                    <a href="https://github.com/UPT-FAING-EPIS/examen-2025-ii-si784-u2-diegocastillo12/actions" class="btn" target="_blank" style="margin: 10px;">⚙️ GitHub Actions</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 Document Converter - Diego Castillo</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Examen Unidad de Calidad SI784-U2</p>
+        </div>
+    </div>
+</body>
+</html>
